@@ -2,58 +2,56 @@ version: 0.2
 phases:
   install: # Install AWS cli, kubectl (needed for Helm) and Helm
     commands:
-      — echo ==================================================================
-      - echo Setting variables
-      — echo ==================================================================
-      — REGION=eu-west-1
-      — AWS_ACCOUNTID=691629053862
-      — ECR_NAME=http-echo
-      — COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
-      — IMAGE_TAG=${COMMIT_HASH:=latest}
-      — EKS_NAME=mattia-tobedel-dev
-      — DEPLOYMENT_NAME=http-echo-deployment 
-      - REPOSITORY_URI=${AWS_ACCOUNTID}.dkr.ecr.${REGION}.amazonaws.com/${ECR_NAME}
-      — echo ==================================================================
-      - echo Logging to AWS ECR
-      — echo ==================================================================
-      — aws ecr get-login-password — region $REGION | docker login — username AWS — password-stdin ${AWS_ACCOUNTID}.dkr.ecr.${REGION}.amazonaws.com
-      — echo ==================================================================
-      - echo Installing necessary dependencies (awscli, aws-cli-authenticator, kubectl, helm)
-      — echo ==================================================================
-      — apt-get update
-      — apt install -y awscli git python3
-      — curl -o aws-iam-authenticator https://amazon-eks.s3.us-west-2.amazonaws.com/1.21.2/2021-07-05/bin/linux/amd64/aws-iam-authenticator
-      — chmod +x ./aws-iam-authenticator
-      — mkdir -p ~/bin && cp ./aws-iam-authenticator ~/bin/aws-iam-authenticator && export PATH=~/bin:$PATH
-      — curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
-      — chmod +x kubectl
-      — mv ./kubectl /usr/local/bin/kubectl
-      — curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3
-      — chmod 700 get_helm.sh
-      — ./get_helm.sh
-    pre_build: # Add kubeconfig to access to EKS cluster
-     commands:
-      — echo ==================================================================
-      — echo Update kubeconfig
-      — echo ==================================================================
-      — aws eks update-kubeconfig — name ${EKS_NAME} — region ${REGION}
-      — kubectl version
-    build: # Build Docker image and tag it with the commit sha
-     commands:
-      — echo ==================================================================
-      — echo Building docker image
-      — echo ==================================================================
-      — docker build -t $REPOSITORY_URI:latest — file Dockerfile .
-      — docker tag $REPOSITORY_URI:latest $REPOSITORY_URI:$IMAGE_TAG
-    post_build: # Push the Docker image to the ECR
-     commands:
-      — echo ==================================================================
-      — echo Pushing ECR
-      — echo ==================================================================
-      — docker push $REPOSITORY_URI:latest
-      — docker push $REPOSITORY_URI:$IMAGE_TAG
-      — echo ==================================================================
-      - echo Rollout new version
-      — echo ==================================================================
-      # - echo kubectl set image deployment/$DEPLOYMENT_NAME [container name]=$REPOSITORY_URI:$IMAGE_TAG
-      # — “kubectl set image deployment/$DEPLOYMENT_NAME [container name]=$REPOSITORY_URI:$IMAGE_TAG”
+      - echo "Install Phase - Nothing to do using latest Amazon Linux Docker Image for CodeBuild which has all AWS Tools - https://github.com/aws/aws-codebuild-docker-images/blob/master/al2/x86_64/standard/3.0/Dockerfile"
+      - echo "Setting variables"
+      - REGION="eu-west-1"
+      - AWS_ACCOUNTID="691629053862"
+      - ECR_NAME="http-echo"
+      - COMMIT_HASH="$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)"
+      - IMAGE_TAG="${COMMIT_HASH:=latest}"
+      - EKS_CLUSTER_NAME="mattia-tobedel-dev"
+      - DEPLOYMENT_NAME="http-echo-deployment"
+      - REPOSITORY_URI="${AWS_ACCOUNTID}.dkr.ecr.${REGION}.amazonaws.com/${ECR_NAME}"
+      - EKS_KUBECTL_ROLE_ARN="arn:aws:iam::691629053862:role/AAAPLEASEDELETEME2"
+      - echo "Logging to AWS ECR"
+      - aws ecr get-login-password --region "${REGION}" | docker login --username AWS --password-stdin ${AWS_ACCOUNTID}.dkr.ecr.${REGION}.amazonaws.com
+      - echo "Installing necessary dependencies awscli git python jq aws-cli-authenticator kubectl helm"
+      - yum update -y
+      - yum install -y awscli git python3 jq
+      - curl -o aws-iam-authenticator https://amazon-eks.s3.us-west-2.amazonaws.com/1.21.2/2021-07-05/bin/linux/amd64/aws-iam-authenticator
+      - chmod +x ./aws-iam-authenticator
+      - mkdir -p ~/bin && cp ./aws-iam-authenticator ~/bin/aws-iam-authenticator && export PATH=~/bin:$PATH
+      - curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
+      - chmod +x kubectl
+      - mv ./kubectl /usr/local/bin/kubectl
+      - curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3
+      - chmod 700 get_helm.sh
+      - ./get_helm.sh
+  pre_build: # Add kubeconfig to access to EKS cluster
+    commands:
+      - echo "Update kubeconfig"
+      - aws eks update-kubeconfig --name ${EKS_CLUSTER_NAME} --region ${REGION} --role-arn ${EKS_KUBECTL_ROLE_ARN}
+      - kubectl version
+      - kubectl get pods -A
+  build: # Build Docker image and tag it with the commit sha
+    commands:
+      - echo "Dockerfile linting stage"
+      - echo "Docker image secrets scanning Stage"
+      - echo "Docker image building stage"
+      - docker build -t ${REPOSITORY_URI}:latest --file Dockerfile .
+      - docker tag ${REPOSITORY_URI}:latest ${REPOSITORY_URI}:${IMAGE_TAG}
+  post_build: # Push the Docker image to the ECR
+    commands:
+      - echo "Pushing Docker image to AWS ECR"
+      - docker push ${REPOSITORY_URI}:latest
+      - docker push ${REPOSITORY_URI}:${IMAGE_TAG}
+      - echo "Docker image vulnerability scanning stage"
+      # - ./ecr-scan.bash ${REPOSITORY_URI} ${IMAGE_TAG}
+      - echo "Rollout new application version"
+      - kubectl apply -f helm
+      # - echo kubectl set image deployment/$DEPLOYMENT_NAME [container name]=${REPOSITORY_URI}:${IMAGE_TAG}
+      # — “kubectl set image deployment/$DEPLOYMENT_NAME [container name]=${REPOSITORY_URI}:${IMAGE_TAG}[”]
+      # - echo "Update Kube Config"      
+      # - aws eks update-kubeconfig --name demo-eks-cluster
+      # - echo "Apply changes to kube manifests"
+      # - kubectl apply -f busybox-deployment.yaml

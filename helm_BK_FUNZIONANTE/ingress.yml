@@ -1,0 +1,68 @@
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: http-echo
+  namespace: http-echo
+  labels:
+    app: http-echo
+  annotations:
+    # Annotations Reference:  https://kubernetes-sigs.github.io/aws-load-balancer-controller/v2.4/guide/ingress/annotations/
+    # Ingress Core Settings  
+    kubernetes.io/ingress.class: "alb"
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    # alb.ingress.kubernetes.io/tags: Environment=dev,Team=test
+    #alb.ingress.kubernetes.io/subnets: subnet-05e1c98ed0f5b109e,subnet-07f5bb81f661df61b,subnet-0a4e6232630820516
+    # load balancer priority, lower numbers are evaluated first
+    # https://docs.aws.amazon.com/elasticloadbalancing/latest/application/listener-update-rules.html#update-rule-priority
+    #alb.ingress.kubernetes.io/group.order: "10"
+    # Health Check Settings
+    alb.ingress.kubernetes.io/healthcheck-protocol: HTTP 
+    alb.ingress.kubernetes.io/healthcheck-port: "80"
+    alb.ingress.kubernetes.io/healthcheck-interval-seconds: '15'
+    alb.ingress.kubernetes.io/healthcheck-timeout-seconds: '5'
+    alb.ingress.kubernetes.io/success-codes: '200'
+    alb.ingress.kubernetes.io/healthy-threshold-count: '2'
+    alb.ingress.kubernetes.io/unhealthy-threshold-count: '2'
+    ## SSL Settings
+    #alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}, {"HTTP": 8080}, {"HTTPS": 8443}]'
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'
+    #alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-east-1:180789647333:certificate/9f042b5d-86fd-4fad-96d0-c81c5abc71e1
+    #alb.ingress.kubernetes.io/ssl-policy: ELBSecurityPolicy-TLS-1-1-2017-01 #Optional (Picks default if not used)    
+    # SSL Redirect Setting
+    #alb.ingress.kubernetes.io/actions.ssl-redirect: '{"Type": "redirect", "RedirectConfig": { "Protocol": "HTTPS", "Port": "443", "StatusCode": "HTTP_301"}}'   
+    # External DNS - For creating a Record Set in Route53
+    #external-dns.alpha.kubernetes.io/hostname: devops.kubeoncloud.com       
+spec:
+  ingressClassName: alb
+  rules:
+    - http:
+        paths:
+          # Important: In path based routing order is very important, if we are going to use  "/*", try to use it at the end of all rules.
+          - path: /
+            backend:
+              service:
+                name: http-echo
+                port:
+                  number: 5678
+            pathType: Prefix
+    - host: echoserver.mycluster.example.org
+      http: &echoserver_root
+        paths:
+        - path: /
+          backend:
+            service:
+              name: echoserver
+              port:
+                number: 80
+          pathType: Prefix
+    - host: echoserver.example.org
+      http: *echoserver_root
+  # the ALB will fetch the right certificate from ACM
+  # you can also specify manually using `alb.ingress.kubernetes.io/certificate-arn` annotation on the Ingress
+  # https://kubernetes-sigs.github.io/aws-load-balancer-controller/v2.4/guide/ingress/annotations/#certificate-arn
+  # tls:
+  #   - hosts:
+  #       - "*.example.com"
+  #     secretName: example-tls
