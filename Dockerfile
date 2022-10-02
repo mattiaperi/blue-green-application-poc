@@ -1,2 +1,2 @@
 FROM hashicorp/http-echo
-CMD ["-text=green"]
+CMD ["-text=blue"]
