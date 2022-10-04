@@ -78,3 +78,22 @@ kubectl patch configmap/aws-auth -n kube-system --patch "$(cat /tmp/aws-auth-pat
 
 
 ## 4. Using aws eks update-kubeconfig with the argument — role-arn <Role created in step1>, you will be able to authenticate in the EKS cluster
+
+
+
+---
+
+    external-dns.alpha.kubernetes.io/hostname: "sub.mydomain.com"
+spec:
+  rules:
+    - host: "*.sub.mydomain.com"
+
+https://kubernetes-sigs.github.io/aws-load-balancer-controller/v2.1/guide/targetgroupbinding/targetgroupbinding/
+
+I see that the ALB is supposed to create the targetgroupbinding itself:
+
+The AWS LoadBalancer controller internally used TargetGroupBinding to support the functionality for Ingress and Service resource as well. It automatically creates TargetGroupBinding in the same namespace of the Service used.
+
+```
+kubectl logs -n kube-system deployment.apps/aws-load-balancer-controller
+```

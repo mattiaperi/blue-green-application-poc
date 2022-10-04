@@ -1,2 +1,2 @@
-FROM hashicorp/http-echo
+FROM hashicorp/http-echo:alpine
 CMD ["-text=blue"]

@@ -48,10 +48,6 @@ phases:
       - echo "Docker image vulnerability scanning stage"
       # - ./ecr-scan.bash ${REPOSITORY_URI} ${IMAGE_TAG}
       - echo "Rollout new application version"
-      - kubectl apply -f helm
+      - kubectl apply -f helm/*
       # - echo kubectl set image deployment/$DEPLOYMENT_NAME [container name]=${REPOSITORY_URI}:${IMAGE_TAG}
       # — “kubectl set image deployment/$DEPLOYMENT_NAME [container name]=${REPOSITORY_URI}:${IMAGE_TAG}[”]
-      # - echo "Update Kube Config"      
-      # - aws eks update-kubeconfig --name demo-eks-cluster
-      # - echo "Apply changes to kube manifests"
-      # - kubectl apply -f busybox-deployment.yaml

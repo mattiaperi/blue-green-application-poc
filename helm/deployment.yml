@@ -21,6 +21,7 @@ spec:
       labels:
         app: http-echo
     spec:
+      serviceAccountName: http-echo
       containers:
         - name: http-echo
           image: 691629053862.dkr.ecr.eu-west-1.amazonaws.com/http-echo:latest
@@ -33,3 +34,18 @@ spec:
             limits:
               memory: "128Mi"
               cpu: "500m"
+          volumeMounts:
+          - name: secrets-store-inline
+            mountPath: "/mnt/secrets-store"
+            readOnly: true
+      volumes:
+      - name: secrets-store-inline
+        csi:
+          driver: secrets-store.csi.k8s.io
+          readOnly: true
+          volumeAttributes:
+            secretProviderClass: "http-echo"
+
+
+
+
