@@ -1,9 +1,4 @@
 ---
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: http-echo
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -34,6 +29,16 @@ spec:
             limits:
               memory: "128Mi"
               cpu: "500m"
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            privileged: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1337
+            runAsGroup: 1337
           volumeMounts:
           - name: secrets-store-inline
             mountPath: "/mnt/secrets-store"

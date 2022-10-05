@@ -1,0 +1,7 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ include "blue-green-application-poc.fullname" . }}
+  labels:
+    {{- include "blue-green-application-poc.labels" . | nindent 4 }}
