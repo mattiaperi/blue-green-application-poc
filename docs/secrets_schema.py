@@ -60,7 +60,7 @@ from diagrams.saas.cdn import Akamai
 
 ### Definitions:
 
-with Diagram("Secrets Flow", show=False):
+with Diagram("Secrets Flow", show=False, direction="LR"):
   akamai = Akamai("Akamai")
   dns = Route53("DNS")
   alb = ElbApplicationLoadBalancer("AppLB")
